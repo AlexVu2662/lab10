@@ -14,13 +14,30 @@ pipeline {
                 sh 'mvn -B clean package'
             }
         }
-        stage('Test') {
-            steps {
-                sh 'mvn -B test'
+        stage('Test & Coverage') {
+            when {
+                expression { return !params.SKIP_TESTS }
             }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
+            parallel {
+                stage('Test') {
+                    steps {
+                        sh 'mvn -B test'
+                    }
+                    post {
+                        always {
+                            junit 'target/surefire-reports/*.xml'
+                        }
+                    }
+                }
+                stage('Coverage') {
+                    steps {
+                        sh 'mvn -B jacoco:report'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'target/site/jacoco/**', allowEmptyArchive: true
+                        }
+                    }
                 }
             }
         }
